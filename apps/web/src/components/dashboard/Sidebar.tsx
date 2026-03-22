@@ -154,6 +154,15 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
       {!collapsed && (
         <div className="border-t border-white/[0.06] px-3 py-3 flex-shrink-0 space-y-1">
           <Link
+            href="/analytics"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-white/30 hover:text-white/50 hover:bg-white/[0.03] transition-all"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
+            Analytics
+          </Link>
+          <Link
             href="/permissions"
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-white/30 hover:text-white/50 hover:bg-white/[0.03] transition-all"
           >

@@ -92,11 +92,25 @@ export function AgentVerification({ agents }: Props) {
                       <span className="text-[12px] font-medium text-white/55 capitalize">
                         {agent.role.replace("_", " ")}
                       </span>
-                      <span className="text-[9px] text-white/15 font-mono ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(agent.wallet_address);
+                          const el = e.currentTarget;
+                          el.textContent = "copied!";
+                          setTimeout(() => {
+                            el.textContent = agent.wallet_address.length > 12
+                              ? `${agent.wallet_address.slice(0, 6)}...${agent.wallet_address.slice(-4)}`
+                              : agent.wallet_address;
+                          }, 1200);
+                        }}
+                        title={agent.wallet_address}
+                        className="text-[9px] text-white/15 hover:text-white/40 font-mono ml-2 transition-colors cursor-pointer"
+                      >
                         {agent.wallet_address.length > 12
                           ? `${agent.wallet_address.slice(0, 6)}...${agent.wallet_address.slice(-4)}`
                           : agent.wallet_address}
-                      </span>
+                      </button>
                     </div>
                   </div>
                   <div className="text-right">

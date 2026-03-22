@@ -10,6 +10,7 @@ interface LiveAgent {
   quality_score: number;
   paid_amount: number;
   task: string;
+  wallet_address?: string;
 }
 
 interface LiveAgentPanelProps {
@@ -268,7 +269,30 @@ function LiveAgentCard({ agent, index, isRunning, isSelected, onClick }: {
               <p className={`text-[13px] font-semibold capitalize ${isFired ? "text-red-400/50 line-through" : "text-white/80"}`}>
                 {agent.role.replace("_", " ")}
               </p>
-              <p className="text-[10px] text-white/30">{config.title}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-white/30">{config.title}</p>
+                {agent.wallet_address && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(agent.wallet_address!);
+                      const el = e.currentTarget;
+                      el.textContent = "copied!";
+                      setTimeout(() => {
+                        el.textContent = agent.wallet_address!.length > 12
+                          ? `${agent.wallet_address!.slice(0, 6)}...${agent.wallet_address!.slice(-4)}`
+                          : agent.wallet_address!;
+                      }, 1200);
+                    }}
+                    title={agent.wallet_address}
+                    className="text-[9px] font-mono text-white/15 hover:text-white/40 transition-colors cursor-pointer"
+                  >
+                    {agent.wallet_address.length > 12
+                      ? `${agent.wallet_address.slice(0, 6)}...${agent.wallet_address.slice(-4)}`
+                      : agent.wallet_address}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="text-right">

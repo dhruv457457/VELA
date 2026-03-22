@@ -9,6 +9,8 @@ import { LiveAgentPanel } from "@/components/dashboard/LiveAgentPanel";
 import { PermissionManager } from "@/components/dashboard/PermissionManager";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { AgentVerification } from "@/components/dashboard/AgentVerification";
+import { CeoValueCard } from "@/components/dashboard/CeoValueCard";
+import { EconomyCharts } from "@/components/dashboard/EconomyCharts";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useAgentStore } from "@/store/agentStore";
 import { useWalletStore } from "@/store/walletStore";
@@ -29,6 +31,7 @@ export default function DashboardPage() {
   const [isRevoked, setIsRevoked] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
   const [leftTab, setLeftTab] = useState<"pipeline" | "delegation">("pipeline");
+  const [workspaceTab, setWorkspaceTab] = useState<"agents" | "analytics">("agents");
 
   const fetchBudget = useCallback(async () => {
     setLoadingBudget(true);
@@ -85,6 +88,7 @@ export default function DashboardPage() {
 
     setIsRevoked(false);
     setSelectedAgent(null);
+    setWorkspaceTab("agents");
     const task = taskInput.trim() || "Research the best DeFi yield farming strategies and write an analysis report";
 
     setIsRunning(true);
@@ -348,63 +352,100 @@ export default function DashboardPage() {
 
           {/* Right area: workspace (top) + terminal (bottom) */}
           <div className="flex-1 flex flex-col min-w-0">
+            {/* Workspace tabs */}
+            {hasResult && !isRunning && (
+              <div className="flex border-b border-white/[0.06] flex-shrink-0">
+                {(["agents", "analytics"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setWorkspaceTab(tab)}
+                    className={`px-5 py-2.5 text-[10px] uppercase tracking-widest font-semibold transition-all ${
+                      workspaceTab === tab
+                        ? "text-white/60 border-b border-white/20"
+                        : "text-white/20 hover:text-white/35"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Agent workspace */}
             <div className="flex-1 overflow-y-auto p-4 min-h-0">
               {(isRunning || hasResult) ? (
-                <>
-                  <LiveAgentPanel
-                    agents={agents}
-                    isRunning={isRunning}
-                    currentStep={currentStep}
-                    selectedAgent={selectedAgent}
-                    onSelectAgent={setSelectedAgent}
-                  />
+                workspaceTab === "analytics" && hasResult && !isRunning ? (
+                  <div className="space-y-4">
+                    <CeoValueCard
+                      totalAllocated={result?.total_allocated || 0}
+                      totalPaid={result?.total_paid || 0}
+                      agentCount={agents.length}
+                      firedCount={firedAgents.length}
+                      agents={agents}
+                    />
+                    <EconomyCharts
+                      agents={agents}
+                      totalAllocated={result?.total_allocated || 0}
+                      totalPaid={result?.total_paid || 0}
+                      economyLog={result?.economy_log || []}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <LiveAgentPanel
+                      agents={agents}
+                      isRunning={isRunning}
+                      currentStep={currentStep}
+                      selectedAgent={selectedAgent}
+                      onSelectAgent={setSelectedAgent}
+                    />
 
-                  {/* Selected agent output overlay */}
-                  <AnimatePresence>
-                    {selectedAgent !== null && agents[selectedAgent] && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 12, height: 0 }}
-                        animate={{ opacity: 1, y: 0, height: "auto" }}
-                        exit={{ opacity: 0, y: 12, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="card-glow p-5 overflow-hidden mt-4"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-xl bg-white/[0.06] flex items-center justify-center">
-                              <span className="text-[12px] font-bold text-white/60">
-                                {agents[selectedAgent].role[0].toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="text-[13px] font-semibold text-white/80 capitalize">
-                                {agents[selectedAgent].role.replace("_", " ")} Output
-                              </p>
-                              <p className="text-[10px] text-white/25 font-mono">
-                                {agents[selectedAgent].output?.length || 0} chars --
-                                score {agents[selectedAgent].quality_score}/10 --
-                                paid ${agents[selectedAgent].paid_amount}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setSelectedAgent(null)}
-                            className="text-[11px] text-white/20 hover:text-white/50 font-mono transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.03]"
-                          >
-                            close
-                          </button>
-                        </div>
-                        <pre
-                          className="text-[11px] text-white/40 max-h-52 overflow-auto whitespace-pre-wrap font-mono rounded-xl p-3 leading-[1.7]"
-                          style={{ background: "rgba(255,255,255,0.015)" }}
+                    {/* Selected agent output overlay */}
+                    <AnimatePresence>
+                      {selectedAgent !== null && agents[selectedAgent] && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 12, height: 0 }}
+                          animate={{ opacity: 1, y: 0, height: "auto" }}
+                          exit={{ opacity: 0, y: 12, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="card-glow p-5 overflow-hidden mt-4"
                         >
-                          {agents[selectedAgent].output || "No output yet..."}
-                        </pre>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-xl bg-white/[0.06] flex items-center justify-center">
+                                <span className="text-[12px] font-bold text-white/60">
+                                  {agents[selectedAgent].role[0].toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-semibold text-white/80 capitalize">
+                                  {agents[selectedAgent].role.replace("_", " ")} Output
+                                </p>
+                                <p className="text-[10px] text-white/25 font-mono">
+                                  {agents[selectedAgent].output?.length || 0} chars --
+                                  score {agents[selectedAgent].quality_score}/10 --
+                                  paid ${agents[selectedAgent].paid_amount}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setSelectedAgent(null)}
+                              className="text-[11px] text-white/20 hover:text-white/50 font-mono transition-colors px-2 py-1 rounded-lg hover:bg-white/[0.03]"
+                            >
+                              close
+                            </button>
+                          </div>
+                          <pre
+                            className="text-[11px] text-white/40 max-h-52 overflow-auto whitespace-pre-wrap font-mono rounded-xl p-3 leading-[1.7]"
+                            style={{ background: "rgba(255,255,255,0.015)" }}
+                          >
+                            {agents[selectedAgent].output || "No output yet..."}
+                          </pre>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )
               ) : (
                 <motion.div
                   className="h-full flex items-center justify-center"
