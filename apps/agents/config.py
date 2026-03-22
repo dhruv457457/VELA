@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     budget_usdc: float = 500.0
     period_days: int = 30
     scheduler_interval_minutes: int = 10080  # 7 days
+    mongodb_uri: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
