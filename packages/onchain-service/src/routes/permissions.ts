@@ -13,6 +13,7 @@ import {
   getActivePermission,
   revokeStoredPermission,
 } from "../services/permissionStore.js";
+import { publicClient } from "../config.js";
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.post("/execute-payments", async (req, res) => {
   }
 });
 
-// ── Permission Storage (JSON file) ──
+// ── Permission Storage (MongoDB with JSON fallback) ──
 
 // Save a signed permission
 router.post("/store", async (req, res) => {
@@ -75,7 +76,7 @@ router.post("/store", async (req, res) => {
       return res.status(400).json({ error: "walletAddress and permissionsContext are required" });
     }
 
-    const stored = savePermission({
+    const stored = await savePermission({
       walletAddress,
       repoName: repoName || "unknown",
       budget: budget || "0",
@@ -96,7 +97,7 @@ router.post("/store", async (req, res) => {
 // Get all permissions for a wallet
 router.get("/list/:walletAddress", async (req, res) => {
   try {
-    const perms = getPermissions(req.params.walletAddress);
+    const perms = await getPermissions(req.params.walletAddress);
     res.json({ permissions: perms });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -106,7 +107,7 @@ router.get("/list/:walletAddress", async (req, res) => {
 // Get the active permission for a wallet
 router.get("/active/:walletAddress", async (req, res) => {
   try {
-    const perm = getActivePermission(req.params.walletAddress);
+    const perm = await getActivePermission(req.params.walletAddress);
     res.json({ permission: perm });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -120,7 +121,7 @@ router.post("/revoke-stored", async (req, res) => {
     if (!permissionId) {
       return res.status(400).json({ error: "permissionId is required" });
     }
-    const success = revokeStoredPermission(permissionId);
+    const success = await revokeStoredPermission(permissionId);
     if (!success) {
       return res.status(404).json({ error: "Permission not found" });
     }
@@ -162,6 +163,56 @@ router.get("/reputation/:address", async (req, res) => {
       reputationScore: rep.reputationScore.toString(),
       lastPaidAt: rep.lastPaidAt.toString(),
     });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Agent On-Chain Verification ──
+
+// Check if an agent address is registered on the ContributorRegistry
+router.post("/verify-agents", async (req, res) => {
+  try {
+    const { addresses } = req.body;
+    if (!addresses || !Array.isArray(addresses)) {
+      return res.status(400).json({ error: "addresses array is required" });
+    }
+
+    const results: Array<{
+      address: string;
+      registered: boolean;
+      handle: string | null;
+      totalEarned: string;
+      totalPayouts: string;
+      reputationScore: string;
+    }> = [];
+
+    for (const addr of addresses) {
+      try {
+        const rep = await getReputation(addr as `0x${string}`);
+        const hasActivity = Number(rep.totalPayouts) > 0 || Number(rep.reputationScore) > 0;
+
+        results.push({
+          address: addr,
+          registered: hasActivity,
+          handle: null,
+          totalEarned: rep.totalEarned.toString(),
+          totalPayouts: rep.totalPayouts.toString(),
+          reputationScore: rep.reputationScore.toString(),
+        });
+      } catch {
+        results.push({
+          address: addr,
+          registered: false,
+          handle: null,
+          totalEarned: "0",
+          totalPayouts: "0",
+          reputationScore: "0",
+        });
+      }
+    }
+
+    res.json({ results });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
