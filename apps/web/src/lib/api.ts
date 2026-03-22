@@ -2,8 +2,7 @@ const AGENTS_API =
   process.env.NEXT_PUBLIC_AGENTS_API_URL || "http://localhost:8000";
 
 export async function triggerPipeline(params?: {
-  repo_owner?: string;
-  repo_name?: string;
+  task?: string;
   budget_usdc?: number;
   permissions_context?: string;
   delegation_manager?: string;
@@ -23,5 +22,36 @@ export async function getPipelineStatus(runId: string) {
 
 export async function listPipelineRuns() {
   const res = await fetch(`${AGENTS_API}/api/agents/runs`);
+  return res.json();
+}
+
+export async function getHistory() {
+  const res = await fetch(`${AGENTS_API}/api/agents/history`);
+  return res.json();
+}
+
+export async function getHistoryRun(runId: string) {
+  const res = await fetch(`${AGENTS_API}/api/agents/history/${runId}`);
+  return res.json();
+}
+
+export async function parseIntent(text: string) {
+  const res = await fetch(`${AGENTS_API}/api/agents/parse-intent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  return res.json();
+}
+
+const ONCHAIN_API =
+  process.env.NEXT_PUBLIC_ONCHAIN_SERVICE_URL || "http://localhost:3001";
+
+export async function verifyAgentsOnChain(addresses: string[]) {
+  const res = await fetch(`${ONCHAIN_API}/api/permissions/verify-agents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ addresses }),
+  });
   return res.json();
 }
