@@ -12,6 +12,7 @@ dependencies = [
     "apscheduler>=3.10.0",
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
+    "motor>=3.3.0",
 ]
 
 [tool.setuptools.packages.find]

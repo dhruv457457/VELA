@@ -23,6 +23,7 @@ export const CONFIG = {
   registryAddress: process.env.CONTRIBUTOR_REGISTRY_ADDRESS as `0x${string}`,
   usdcAddress: (process.env.USDC_ADDRESS ||
     "0x38cFa1c54105d5382e4F3689af819116977A40Ce") as `0x${string}`,
+  mongodbUri: process.env.MONGODB_URI || "",
   chain: sepolia,
 };
 

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { getDb } from "../db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STORE_PATH = resolve(__dirname, "../../permissions.json");
@@ -24,6 +25,8 @@ interface PermissionStore {
   permissions: StoredPermission[];
 }
 
+// ── File-based fallback ──
+
 function readStore(): PermissionStore {
   if (!existsSync(STORE_PATH)) {
     return { permissions: [] };
@@ -40,13 +43,46 @@ function writeStore(store: PermissionStore): void {
   writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
 }
 
+// ── MongoDB + file hybrid functions ──
+
 /**
  * Save a new permission (or update existing one for same wallet+repo).
  */
-export function savePermission(permission: Omit<StoredPermission, "id" | "createdAt" | "status">): StoredPermission {
-  const store = readStore();
+export async function savePermission(
+  permission: Omit<StoredPermission, "id" | "createdAt" | "status">
+): Promise<StoredPermission> {
+  const db = await getDb();
 
-  // Check for existing active permission for same wallet + repo
+  const id = `perm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const entry: StoredPermission = {
+    ...permission,
+    id,
+    createdAt: new Date().toISOString(),
+    status: "active",
+  };
+
+  if (db) {
+    try {
+      // Deactivate existing active permission for same wallet+repo
+      await db.collection("permissions").updateMany(
+        {
+          walletAddress: { $regex: new RegExp(`^${permission.walletAddress}$`, "i") },
+          repoName: permission.repoName,
+          status: "active",
+        },
+        { $set: { status: "revoked" } }
+      );
+
+      await db.collection("permissions").insertOne({ ...entry });
+      console.log(`[PermissionStore] Saved permission ${entry.id} to MongoDB`);
+      return entry;
+    } catch (err) {
+      console.warn("[PermissionStore] MongoDB save failed, using file:", err);
+    }
+  }
+
+  // File fallback
+  const store = readStore();
   const existingIdx = store.permissions.findIndex(
     (p) =>
       p.walletAddress.toLowerCase() === permission.walletAddress.toLowerCase() &&
@@ -54,21 +90,14 @@ export function savePermission(permission: Omit<StoredPermission, "id" | "create
       p.status === "active"
   );
 
-  const entry: StoredPermission = {
-    ...permission,
-    id: existingIdx >= 0 ? store.permissions[existingIdx].id : `perm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    createdAt: existingIdx >= 0 ? store.permissions[existingIdx].createdAt : new Date().toISOString(),
-    status: "active",
-  };
-
   if (existingIdx >= 0) {
-    // Update existing
+    entry.id = store.permissions[existingIdx].id;
+    entry.createdAt = store.permissions[existingIdx].createdAt;
     store.permissions[existingIdx] = entry;
-    console.log(`[PermissionStore] Updated permission ${entry.id} for ${permission.repoName}`);
+    console.log(`[PermissionStore] Updated permission ${entry.id} in file`);
   } else {
-    // Add new
     store.permissions.push(entry);
-    console.log(`[PermissionStore] Saved new permission ${entry.id} for ${permission.repoName}`);
+    console.log(`[PermissionStore] Saved new permission ${entry.id} to file`);
   }
 
   writeStore(store);
@@ -78,10 +107,39 @@ export function savePermission(permission: Omit<StoredPermission, "id" | "create
 /**
  * Get all permissions for a wallet address.
  */
-export function getPermissions(walletAddress: string): StoredPermission[] {
-  const store = readStore();
+export async function getPermissions(walletAddress: string): Promise<StoredPermission[]> {
+  const db = await getDb();
 
-  // Auto-expire old permissions
+  if (db) {
+    try {
+      const perms = await db
+        .collection("permissions")
+        .find(
+          { walletAddress: { $regex: new RegExp(`^${walletAddress}$`, "i") } },
+          { projection: { _id: 0 } }
+        )
+        .toArray();
+
+      // Auto-expire
+      const now = new Date();
+      for (const p of perms) {
+        if (p.status === "active" && new Date(p.expiresAt) < now) {
+          await db.collection("permissions").updateOne(
+            { id: p.id },
+            { $set: { status: "expired" } }
+          );
+          p.status = "expired";
+        }
+      }
+
+      return perms as unknown as StoredPermission[];
+    } catch (err) {
+      console.warn("[PermissionStore] MongoDB read failed, using file:", err);
+    }
+  }
+
+  // File fallback
+  const store = readStore();
   const now = new Date();
   let changed = false;
   store.permissions.forEach((p) => {
@@ -100,21 +158,39 @@ export function getPermissions(walletAddress: string): StoredPermission[] {
 /**
  * Get the active permission for a wallet (most recent active one).
  */
-export function getActivePermission(walletAddress: string): StoredPermission | null {
-  const perms = getPermissions(walletAddress);
+export async function getActivePermission(walletAddress: string): Promise<StoredPermission | null> {
+  const perms = await getPermissions(walletAddress);
   return perms.find((p) => p.status === "active") || null;
 }
 
 /**
  * Revoke a permission by ID.
  */
-export function revokeStoredPermission(permissionId: string): boolean {
+export async function revokeStoredPermission(permissionId: string): Promise<boolean> {
+  const db = await getDb();
+
+  if (db) {
+    try {
+      const result = await db.collection("permissions").updateOne(
+        { id: permissionId },
+        { $set: { status: "revoked" } }
+      );
+      if (result.matchedCount > 0) {
+        console.log(`[PermissionStore] Revoked permission ${permissionId} in MongoDB`);
+        return true;
+      }
+    } catch (err) {
+      console.warn("[PermissionStore] MongoDB revoke failed, using file:", err);
+    }
+  }
+
+  // File fallback
   const store = readStore();
   const perm = store.permissions.find((p) => p.id === permissionId);
   if (!perm) return false;
 
   perm.status = "revoked";
   writeStore(store);
-  console.log(`[PermissionStore] Revoked permission ${permissionId}`);
+  console.log(`[PermissionStore] Revoked permission ${permissionId} in file`);
   return true;
 }
