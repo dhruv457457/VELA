@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { GlassNavbar } from "@/components/ui/GlassNavbar";
-import { WalletBanner } from "@/components/wallet/WalletBanner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
-  title: "Pact — AI Contributor Rewards Protocol",
+  title: "Pact — Autonomous AI Agent Economy",
   description:
-    "AI agents that autonomously reward open source contributors via MetaMask ERC-7715 permissions",
+    "AI agents that hire, pay, and fire each other using ERC-7715 delegated permissions.",
 };
 
 export default function RootLayout({
@@ -19,10 +25,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} glass-bg`}>
-        <GlassNavbar />
-        <WalletBanner />
-        <main className="px-4 py-8 max-w-6xl mx-auto">{children}</main>
+      <body className={`${inter.variable} ${jetbrains.variable} font-sans app-bg`}>
+        {children}
       </body>
     </html>
   );

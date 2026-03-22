@@ -5,105 +5,288 @@
 @layer base {
   body {
     @apply text-white antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  ::selection {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.12); }
 }
 
 @layer components {
-  .glass-bg {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    background-size: 400% 400%;
-    animation: gradientShift 12s ease infinite;
+  .app-bg {
+    background: #050505;
     min-height: 100vh;
+    color: #f5f5f5;
   }
 
-  .glass-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+  /* --- Cards --- */
+  .card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 20px;
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
   }
 
-  .glass-card-sm {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  .card-sm {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
   }
 
-  .glass-button {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    color: white;
-    transition: all 0.2s ease;
-    cursor: pointer;
+  .card-glow {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.02), 0 0 60px rgba(255, 255, 255, 0.01);
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
   }
 
-  .glass-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  .card-glow:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.04), 0 0 80px rgba(255, 255, 255, 0.02);
+  }
+
+  .card-glow-active {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.05), 0 0 80px rgba(255, 255, 255, 0.025);
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+
+  .card-interactive {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-interactive:hover {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
   }
 
-  .glass-button-primary {
-    background: rgba(124, 58, 237, 0.4);
-    border: 1px solid rgba(124, 58, 237, 0.5);
-  }
-
-  .glass-button-primary:hover {
-    background: rgba(124, 58, 237, 0.6);
-    box-shadow: 0 4px 24px rgba(124, 58, 237, 0.3);
-  }
-
-  .flask-badge {
-    background: rgba(255, 138, 0, 0.15);
-    border: 1px solid rgba(255, 138, 0, 0.3);
-    backdrop-filter: blur(8px);
-    border-radius: 8px;
-    color: #ffaa40;
-    font-size: 12px;
-    padding: 4px 10px;
-  }
-
-  .glass-input {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+  /* --- Buttons --- */
+  .btn {
     border-radius: 12px;
-    color: white;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-default {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .btn-default:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .btn-primary {
+    background: #ffffff;
+    border: 1px solid #ffffff;
+    color: #050505;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.08);
+  }
+
+  .btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* --- Inputs --- */
+  .input {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    color: #f5f5f5;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s ease;
+    font-size: 14px;
   }
 
-  .glass-input:focus {
-    border-color: rgba(124, 58, 237, 0.5);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+  .input:focus {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .glass-input::placeholder {
+  .input::placeholder {
+    color: rgba(255, 255, 255, 0.18);
+  }
+
+  /* --- Badge --- */
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .badge-active {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .badge-success {
+    background: rgba(52, 211, 153, 0.08);
+    color: rgba(52, 211, 153, 0.85);
+    border: 1px solid rgba(52, 211, 153, 0.12);
+  }
+
+  .badge-danger {
+    background: rgba(248, 113, 113, 0.08);
+    color: rgba(248, 113, 113, 0.85);
+    border: 1px solid rgba(248, 113, 113, 0.12);
+  }
+
+  .badge-warn {
+    background: rgba(251, 191, 36, 0.08);
+    color: rgba(251, 191, 36, 0.85);
+    border: 1px solid rgba(251, 191, 36, 0.12);
+  }
+
+  .badge-flask {
+    background: rgba(255, 138, 0, 0.08);
+    color: rgba(255, 180, 80, 0.9);
+    border: 1px solid rgba(255, 138, 0, 0.15);
+  }
+
+  /* --- Label --- */
+  .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+    letter-spacing: -0.01em;
+  }
+
+  .label-xs {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* --- Section header --- */
+  .section-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.2;
+  }
+
+  .section-subtitle {
+    font-size: 13px;
     color: rgba(255, 255, 255, 0.35);
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
   }
 
-  .glass-table th {
-    @apply text-left text-sm font-medium text-white/60 px-4 py-3;
+  /* --- Stat numbers --- */
+  .stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: rgba(255, 255, 255, 0.95);
+    font-variant-numeric: tabular-nums;
   }
 
-  .glass-table td {
-    @apply px-4 py-3 text-sm border-t border-white/5;
+  /* --- Mono --- */
+  .mono {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  }
+
+  /* --- Pulse dot --- */
+  .dot-pulse {
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+
+  /* --- Flow line (for USDC animation) --- */
+  .flow-line {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .flow-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: flowPulse 2.5s ease-in-out infinite;
+  }
+
+  /* --- Divider --- */
+  .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* --- Robot animation --- */
+  .robot-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* --- Terminal (VS Code style) --- */
+  .terminal {
+    background: #0c0c0c;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  }
+
+  .terminal-titlebar {
+    background: #161616;
   }
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes flowPulse {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 40px rgba(255,255,255,0.05), 0 0 80px rgba(255,255,255,0.025); }
+  50% { box-shadow: 0 0 50px rgba(255,255,255,0.08), 0 0 100px rgba(255,255,255,0.04); }
+}
+
+@keyframes robotBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
 }
