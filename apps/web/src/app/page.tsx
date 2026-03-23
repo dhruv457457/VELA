@@ -114,6 +114,7 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-[13px] text-white/30 hover:text-white/60 transition-colors">Dashboard</Link>
             <Link href="/analytics" className="text-[13px] text-white/30 hover:text-white/60 transition-colors">Analytics</Link>
+            <Link href="/faucet" className="text-[13px] text-white/30 hover:text-white/60 transition-colors">Faucet</Link>
             {!address ? (
               <button onClick={connect} className="text-[13px] text-white/50 px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/[0.04] transition-all">
                 Connect
