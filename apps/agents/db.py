@@ -1,4 +1,4 @@
-"""MongoDB client for Pact agents backend."""
+"""MongoDB client for Vela agents backend."""
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import settings

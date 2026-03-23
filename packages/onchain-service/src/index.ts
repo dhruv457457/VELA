@@ -17,8 +17,8 @@ app.use("/api/permissions", permissionsRouter);
 (async () => {
   await getDb();
   app.listen(CONFIG.port, () => {
-    console.log(`[Pact On-Chain Service] Running on port ${CONFIG.port}`);
-    console.log(`[Pact On-Chain Service] Chain: ${CONFIG.chain.name}`);
-    console.log(`[Pact On-Chain Service] USDC: ${CONFIG.usdcAddress}`);
+    console.log(`[Vela On-Chain Service] Running on port ${CONFIG.port}`);
+    console.log(`[Vela On-Chain Service] Chain: ${CONFIG.chain.name}`);
+    console.log(`[Vela On-Chain Service] USDC: ${CONFIG.usdcAddress}`);
   });
 })();

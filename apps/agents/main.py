@@ -15,15 +15,15 @@ async def lifespan(app: FastAPI):
     # Start scheduler
     scheduler = create_scheduler()
     scheduler.start()
-    print("[Pact] Scheduler started")
+    print("[Vela] Scheduler started")
     yield
     scheduler.shutdown()
-    print("[Pact] Scheduler stopped")
+    print("[Vela] Scheduler stopped")
     await close_db()
 
 
 app = FastAPI(
-    title="Pact Agent Economy API",
+    title="Vela Agent Economy API",
     description="Autonomous AI agent economy — agents that hire, pay, and fire each other",
     version="0.2.0",
     lifespan=lifespan,
@@ -43,4 +43,4 @@ app.include_router(webhooks_router)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "pact-agents"}
+    return {"status": "ok", "service": "vela-agents"}

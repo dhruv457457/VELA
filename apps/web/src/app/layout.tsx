@@ -13,7 +13,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pact — Autonomous AI Agent Economy",
+  title: "Vela — Autonomous AI Agent Economy",
   description:
     "AI agents that hire, pay, and fire each other using ERC-7715 delegated permissions.",
 };

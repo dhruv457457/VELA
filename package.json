@@ -1,5 +1,5 @@
 {
-  "name": "pact",
+  "name": "vela",
   "version": "0.1.0",
   "private": true,
   "description": "AI agents that autonomously reward open source contributors via MetaMask ERC-7715 permissions",
@@ -16,7 +16,6 @@
     "test:contracts": "npm run test --workspace=packages/contracts"
   },
   "dependencies": {
-    "@metamask/smart-accounts-kit": "^0.4.0-beta.1",
-    "framer-motion": "^12.38.0"
+    "@metamask/smart-accounts-kit": "^0.4.0-beta.1"
   }
 }

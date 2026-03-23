@@ -65,7 +65,7 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
       <div className="flex items-center justify-between px-3 h-14 border-b border-white/[0.06] flex-shrink-0">
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-[15px] font-semibold text-white/90 tracking-[-0.02em]">Pact</span>
+            <span className="text-[15px] font-semibold text-white/90 tracking-[-0.02em]">Vela</span>
             <span className="text-[9px] text-white/20 font-mono">v1</span>
           </Link>
         )}

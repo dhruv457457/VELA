@@ -128,7 +128,7 @@ export function PermissionManager({ onPermissionChange }: PermissionManagerProps
             periodAmount: parseUnits(budget, 6),
             periodDuration: periodSeconds,
             startTime: currentTime,
-            justification: `Pact: AI agent economy`,
+            justification: `Vela: AI agent economy`,
           },
         },
       }]);

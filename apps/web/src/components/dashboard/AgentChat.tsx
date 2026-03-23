@@ -200,7 +200,7 @@ export function AgentChat({ economyLog, agents, isRunning, currentStep }: AgentC
         {isRunning && (
           <div className="flex items-center gap-0 py-0.5 px-1 -mx-1 mt-1">
             <span className="text-white/15 w-4 flex-shrink-0">$</span>
-            <span className="text-emerald-400/50 font-semibold w-[72px] flex-shrink-0">pact</span>
+            <span className="text-emerald-400/50 font-semibold w-[72px] flex-shrink-0">vela</span>
             <div className="flex items-center gap-1">
               <span className="text-white/20">processing</span>
               {[0, 1, 2].map((j) => (

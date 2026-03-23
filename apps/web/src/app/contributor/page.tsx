@@ -248,7 +248,7 @@ export default function ContributorPage() {
               <p className="text-[11px] text-white/25 leading-relaxed">
                 Your GitHub handle <span className="text-white/50">@{profile.handle}</span> is
                 linked on-chain. You'll automatically receive USDC when your PRs
-                are scored by the Pact agent.
+                are scored by the Vela agent.
               </p>
             </div>
           </div>

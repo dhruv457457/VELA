@@ -18,7 +18,7 @@ export function Navbar() {
         <div className="flex items-center gap-10">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="text-[16px] font-semibold tracking-[-0.02em] text-white">
-              Pact
+              Vela
             </span>
             <span className="text-[10px] text-white/20 font-mono mt-0.5">
               v1
