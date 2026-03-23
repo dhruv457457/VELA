@@ -175,7 +175,7 @@ export default function Home() {
                   Launch App
                 </button>
                 <Link href="/dashboard" className="btn btn-default px-8 py-3.5 text-[14px]">
-                  View Demo
+                  Explore
                 </Link>
               </>
             ) : (
@@ -404,7 +404,7 @@ export default function Home() {
                     Connect MetaMask Flask
                   </button>
                   <Link href="/dashboard" className="btn btn-default px-8 py-4 text-[14px]">
-                    Try Demo
+                    Explore
                   </Link>
                 </>
               ) : (

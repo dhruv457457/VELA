@@ -135,28 +135,7 @@ export function PermissionGrant({ onSuccess }: PermissionGrantProps = {}) {
     }
   }
 
-  async function handleDemoGrant() {
-    setStatus("signing");
-    await new Promise((r) => setTimeout(r, 1500));
-    const demoCtx = `demo_permissions_${repoName}_${budget}_${Date.now()}`;
-    setPermissionsContext(demoCtx);
-    setGrantedContext(demoCtx);
-
-    try {
-      const expiryMs = parseInt(expiryDays) * 24 * 60 * 60 * 1000;
-      await fetch(`${ONCHAIN_SERVICE_URL}/api/permissions/store`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: address, repoName, budget, periodDays, expiryDays, agentAddress,
-          permissionsContext: demoCtx, delegationManager: "",
-          expiresAt: new Date(Date.now() + expiryMs).toISOString(),
-        }),
-      });
-    } catch {}
-
-    setStatus("success");
-    onSuccess?.();
+  // Demo mode removed - production only uses real MetaMask ERC-7715 permissions
   }
 
   const periodSeconds = parseInt(periodDays) * 24 * 60 * 60;
@@ -374,13 +353,6 @@ export function PermissionGrant({ onSuccess }: PermissionGrantProps = {}) {
               )}
             </button>
 
-            <button
-              className="btn btn-default w-full py-3.5 text-[14px]"
-              onClick={handleDemoGrant}
-              disabled={status === "signing" || !repoName || !budget}
-            >
-              Demo Mode (no Flask required)
-            </button>
 
             <p className="text-[11px] text-white/15 text-center font-mono pt-1">
               Real ERC-7715 requires{" "}

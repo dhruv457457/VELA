@@ -164,30 +164,6 @@ export function PermissionManager({ onPermissionChange }: PermissionManagerProps
     }
   }
 
-  async function handleDemoGrant() {
-    setStatus("signing");
-    await new Promise((r) => setTimeout(r, 1200));
-    const demoCtx = `demo_permissions_economy_${budget}_${Date.now()}`;
-    setPermissionsContext(demoCtx);
-
-    try {
-      await fetch(`${ONCHAIN_SERVICE_URL}/api/permissions/store`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: address, repoName: "Agent Economy", budget, periodDays, expiryDays: "90", agentAddress,
-          permissionsContext: demoCtx, delegationManager: "",
-          expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        }),
-      });
-    } catch {}
-
-    setStatus("success");
-    setShowGrant(false);
-    fetchPermissions();
-    fetchRemaining();
-    onPermissionChange?.();
-  }
 
   const activePerms = permissions.filter((p) => p.status === "active");
   const pastPerms = permissions.filter((p) => p.status !== "active");
@@ -282,11 +258,15 @@ export function PermissionManager({ onPermissionChange }: PermissionManagerProps
                 </div>
                 <div>
                   <p className="text-[14px] font-medium text-white/70">
-                    {isExhausted ? "Budget Exhausted" : hasActive ? "Update Permission" : "Fund Agents"}
+                    {isExhausted ? "Budget Exhausted" : hasActive ? "Update Permission" : "Grant Permission"}
                   </p>
-                  {isExhausted && (
+                  {isExhausted ? (
                     <p className="text-[11px] text-red-400/50 font-mono mt-0.5">
-                      You've used all allocated funds. Grant a new permission to continue.
+                      Budget depleted. Sign a new MetaMask permission to continue.
+                    </p>
+                  ) : !hasActive && (
+                    <p className="text-[11px] text-amber-400/40 font-mono mt-0.5">
+                      Sign an ERC-7715 permission with MetaMask to fund your agents.
                     </p>
                   )}
                 </div>
@@ -311,26 +291,22 @@ export function PermissionManager({ onPermissionChange }: PermissionManagerProps
 
             {grantError && <p className="text-[12px] text-red-400/55 mb-3">{grantError}</p>}
 
-            <div className="flex gap-2">
-              <button
-                className="btn btn-primary flex-1 py-2.5 text-[13px]"
-                onClick={handleGrant}
-                disabled={status === "signing"}
-              >
-                {status === "signing" ? "Signing..." : "Sign with MetaMask"}
-              </button>
-              <button
-                className="btn btn-default flex-1 py-2.5 text-[13px]"
-                onClick={handleDemoGrant}
-                disabled={status === "signing"}
-              >
-                Demo Mode
-              </button>
-            </div>
+            <button
+              className="btn btn-primary w-full py-2.5 text-[13px]"
+              onClick={handleGrant}
+              disabled={status === "signing" || !address}
+            >
+              {status === "signing" ? "Signing..." : "Sign with MetaMask"}
+            </button>
 
-            {walletType !== "flask" && (
-              <p className="text-[10px] text-white/12 text-center font-mono mt-3">
-                Real ERC-7715 requires MetaMask Flask 13.5.0+
+            {!address && (
+              <p className="text-[10px] text-amber-400/40 text-center font-mono mt-3">
+                Connect MetaMask Flask to grant permissions
+              </p>
+            )}
+            {address && walletType !== "flask" && (
+              <p className="text-[10px] text-amber-400/40 text-center font-mono mt-3">
+                ERC-7715 requires MetaMask Flask 13.5.0+
               </p>
             )}
 

@@ -316,14 +316,22 @@ export default function DashboardPage() {
                 />
                 <div className="flex items-center justify-between px-4 pb-3">
                   <div className="flex items-center gap-3">
-                    {permissionsContext ? (
+                    {permissionsContext && !isRevoked ? (
                       <span className="text-[10px] font-mono text-emerald-400/40 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
                         ERC-7715 active
                         {!loadingBudget && <span className="text-white/20 ml-1">${budgetUsdc}</span>}
                       </span>
+                    ) : isRevoked ? (
+                      <span className="text-[10px] font-mono text-red-400/50 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400/60" />
+                        Permission revoked -- sign a new MetaMask permission above
+                      </span>
                     ) : (
-                      <span className="text-[10px] font-mono text-amber-400/40">grant permission first</span>
+                      <span className="text-[10px] font-mono text-amber-400/40 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60" />
+                        Sign MetaMask ERC-7715 permission to start
+                      </span>
                     )}
                   </div>
                   <button

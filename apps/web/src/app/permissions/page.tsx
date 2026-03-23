@@ -127,7 +127,7 @@ export default function PermissionsPage() {
           <p className="section-subtitle">
             {walletType === "flask"
               ? "delegated spend authority for AI agents"
-              : "demo mode — install MetaMask Flask for real ERC-7715"}
+              : "upgrade to MetaMask Flask for ERC-7715 permissions"}
           </p>
         </div>
       </div>
