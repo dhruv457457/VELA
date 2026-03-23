@@ -44,6 +44,23 @@ export async function parseIntent(text: string) {
   return res.json();
 }
 
+export async function analyzeAgent(agent: {
+  role: string;
+  task: string;
+  output: string;
+  quality_score: number;
+  paid_amount: number;
+  budget: number;
+  status: string;
+}) {
+  const res = await fetch(`${AGENTS_API}/api/agents/analyze-agent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(agent),
+  });
+  return res.json();
+}
+
 const ONCHAIN_API =
   process.env.NEXT_PUBLIC_ONCHAIN_SERVICE_URL || "http://localhost:3001";
 

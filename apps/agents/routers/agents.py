@@ -307,3 +307,80 @@ async def parse_intent(req: ParseIntentRequest):
         return {"ok": True, **result}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+class AnalyzeAgentRequest(BaseModel):
+    role: str
+    task: str
+    output: str
+    quality_score: float = 0
+    paid_amount: float = 0
+    budget: float = 0
+    status: str = ""
+
+
+@router.post("/analyze-agent")
+async def analyze_agent(req: AnalyzeAgentRequest):
+    """Analyze an agent's output and return structured visual data."""
+    import httpx
+
+    prompt = f"""Analyze this AI agent's work output and return a JSON object for visual dashboard rendering.
+
+Agent Role: {req.role}
+Task: {req.task}
+Quality Score: {req.quality_score}/10
+Budget: ${req.budget} | Paid: ${req.paid_amount}
+Status: {req.status}
+
+Output:
+{req.output[:3000]}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "summary": "2-3 sentence executive summary of what this agent delivered",
+  "key_findings": ["finding 1", "finding 2", "finding 3", "finding 4"],
+  "metrics": [
+    {{"label": "metric name", "value": "metric value", "color": "emerald|blue|purple|amber|rose"}},
+    {{"label": "metric name", "value": "metric value", "color": "emerald|blue|purple|amber|rose"}}
+  ],
+  "strengths": ["strength 1", "strength 2"],
+  "weaknesses": ["weakness 1"],
+  "word_count": 0,
+  "sections_covered": ["section 1", "section 2"],
+  "depth_score": 0,
+  "actionability_score": 0,
+  "research_quality": 0,
+  "writing_quality": 0
+}}
+
+depth_score, actionability_score, research_quality, writing_quality are 1-10 integers.
+Return ONLY the JSON, no markdown, no explanation."""
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.openrouter_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "anthropic/claude-sonnet-4",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 1000,
+                },
+            )
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            # Strip markdown fences if present
+            content = content.strip()
+            if content.startswith("```"):
+                content = content.split("\n", 1)[1]
+            if content.endswith("```"):
+                content = content.rsplit("```", 1)[0]
+            content = content.strip()
+
+            analysis = json.loads(content)
+            return {"ok": True, "analysis": analysis}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
