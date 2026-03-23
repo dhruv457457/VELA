@@ -136,7 +136,6 @@ export function PermissionGrant({ onSuccess }: PermissionGrantProps = {}) {
   }
 
   // Demo mode removed - production only uses real MetaMask ERC-7715 permissions
-  }
 
   const periodSeconds = parseInt(periodDays) * 24 * 60 * 60;
   const expiryDate = new Date(Date.now() + parseInt(expiryDays) * 24 * 60 * 60 * 1000);
