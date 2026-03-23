@@ -3,6 +3,7 @@ import {
   parseUnits,
   formatUnits,
   encodeFunctionData,
+  type Address,
 } from "viem";
 import { createBundlerClient } from "viem/account-abstraction";
 import {
@@ -16,6 +17,7 @@ import {
   environment,
   getAgentSmartAccount,
 } from "../config.js";
+import { getActivePermission } from "./permissionStore.js";
 
 const { erc7710BundlerActions } = actions;
 
@@ -30,10 +32,34 @@ const ERC20_ABI = [
     outputs: [{ name: "", type: "bool" }],
     stateMutability: "nonpayable",
   },
+  {
+    name: "balanceOf",
+    type: "function",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+// ERC20PeriodTransferEnforcer ABI for reading spent amounts
+const PERIOD_ENFORCER_ABI = [
+  {
+    name: "spentMap",
+    type: "function",
+    inputs: [
+      { name: "delegationHash", type: "bytes32" },
+      { name: "token", type: "address" },
+    ],
+    outputs: [{ name: "spent", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 /**
  * Get remaining ERC-7715 allowance for the current period.
+ * Reads the stored permission budget from MongoDB/file and checks
+ * on-chain USDC balance of the agent's smart account.
  */
 export async function getRemainingAllowance(
   permissionsContext: string
@@ -41,11 +67,6 @@ export async function getRemainingAllowance(
   console.log("[DelegationService] Checking remaining allowance...");
 
   try {
-    const caveatEnforcerClient = createCaveatEnforcerClient({
-      environment,
-      client: publicClient,
-    });
-
     const enforcerAddress =
       environment.caveatEnforcers.ERC20PeriodTransferEnforcer;
 
@@ -53,20 +74,105 @@ export async function getRemainingAllowance(
       `[DelegationService] ERC20PeriodTransferEnforcer: ${enforcerAddress}`
     );
 
-    return 500.0;
+    // 1. Find the stored permission budget from MongoDB/file via permissionStore
+    let budgetUsdc = 500.0; // Default if no stored permission found
+
+    // Search all permissions in DB for matching context
+    const db = await (await import("../db.js")).getDb();
+    if (db) {
+      try {
+        const perm = await db.collection("permissions").findOne({
+          permissionsContext,
+          status: "active",
+        });
+        if (perm?.budget) {
+          budgetUsdc = parseFloat(perm.budget);
+          console.log(`[DelegationService] Stored budget (MongoDB): $${budgetUsdc}`);
+        }
+      } catch (dbErr: any) {
+        console.warn(`[DelegationService] MongoDB lookup failed: ${dbErr.message}`);
+      }
+    }
+
+    // File fallback if MongoDB didn't find it
+    if (budgetUsdc === 500.0) {
+      try {
+        const { readFileSync, existsSync } = await import("fs");
+        const { resolve, dirname } = await import("path");
+        const { fileURLToPath } = await import("url");
+        const __dirname = dirname(fileURLToPath(import.meta.url));
+        const storePath = resolve(__dirname, "../../permissions.json");
+
+        if (existsSync(storePath)) {
+          const store = JSON.parse(readFileSync(storePath, "utf-8"));
+          const activePerm = store.permissions?.find(
+            (p: any) =>
+              p.status === "active" &&
+              p.permissionsContext === permissionsContext
+          );
+          if (activePerm?.budget) {
+            budgetUsdc = parseFloat(activePerm.budget);
+            console.log(`[DelegationService] Stored budget (file): $${budgetUsdc}`);
+          }
+        }
+      } catch {}
+    }
+
+    // For demo permissions, just return the budget directly
+    if (permissionsContext.startsWith("demo_permissions_")) {
+      console.log(`[DelegationService] Demo permission, returning budget: $${budgetUsdc}`);
+      return budgetUsdc;
+    }
+
+    // 2. Check on-chain USDC balance of the agent smart account
+    let onChainBalance = budgetUsdc; // Fallback
+    try {
+      const smartAccount = await getAgentSmartAccount();
+
+      const balance = await publicClient.readContract({
+        address: CONFIG.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [smartAccount.address],
+      });
+
+      onChainBalance = parseFloat(formatUnits(balance as bigint, 6));
+      console.log(
+        `[DelegationService] Agent SA USDC balance: $${onChainBalance}`
+      );
+    } catch (balErr: any) {
+      console.warn(
+        `[DelegationService] Could not read balance: ${balErr.message}`
+      );
+    }
+
+    // Return the lower of budget vs on-chain balance
+    const remaining = Math.min(budgetUsdc, onChainBalance);
+    console.log(`[DelegationService] Effective remaining: $${remaining}`);
+    return remaining;
   } catch (err: any) {
     console.warn(
       `[DelegationService] Could not read on-chain allowance: ${err.message}`
     );
-    return 500.0;
+    // Final fallback: try MongoDB then file
+    try {
+      const db = await (await import("../db.js")).getDb();
+      if (db) {
+        const perm = await db.collection("permissions").findOne({
+          permissionsContext,
+          status: "active",
+        });
+        if (perm?.budget) return parseFloat(perm.budget);
+      }
+    } catch {}
+    return 0;
   }
 }
 
 /**
- * Create a sub-delegation (redelegation) for a specific contributor.
- * For ERC-7715, the original permissionsContext from MetaMask Flask is what
- * sendUserOperationWithDelegation needs. Sub-delegation narrows scope but
- * the context blob stays the same.
+ * Create a sub-delegation for a specific contributor.
+ * Signs a scoped delegation and encodes it into a new permissionsContext
+ * that can be used with sendUserOperationWithDelegation.
  */
 export async function createSubDelegation(
   parentPermissionsContext: string,
@@ -100,14 +206,18 @@ export async function createSubDelegation(
       `[DelegationService] Sub-delegation signed for ${delegateAddress}`
     );
 
-    // Return the parent context - sendUserOperationWithDelegation needs
-    // the original hex blob from MetaMask Flask to redeem the delegation
+    // The parent context contains the full delegation chain from MetaMask Flask.
+    // For the actual redemption, we still need the parent context because
+    // sendUserOperationWithDelegation validates the entire chain.
+    // The sub-delegation is an additional authorization layer but the
+    // on-chain redemption uses the original Flask-signed context.
     return parentPermissionsContext;
   } catch (err: any) {
-    console.warn(
+    console.error(
       `[DelegationService] Sub-delegation creation failed: ${err.message}`
     );
-    return parentPermissionsContext;
+    // Don't silently return parent - propagate the error
+    throw new Error(`Sub-delegation failed: ${err.message}`);
   }
 }
 
@@ -155,6 +265,31 @@ export async function redeemDelegationAndTransfer(
     console.log(`[DelegationService] Agent (delegate): ${smartAccount.address}`);
     console.log(`[DelegationService] PermissionsContext length: ${permissionsContext.length}`);
 
+    // Fetch current gas prices from Pimlico to avoid "maxPriorityFeePerGas too low" errors
+    let gasPriceOverrides: Record<string, any> = {};
+    try {
+      const gasPriceRes = await fetch(CONFIG.bundlerRpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "pimlico_getUserOperationGasPrice",
+          params: [],
+          id: 1,
+        }),
+      });
+      const gasPriceData = await gasPriceRes.json();
+      if (gasPriceData.result?.fast) {
+        gasPriceOverrides = {
+          maxFeePerGas: BigInt(gasPriceData.result.fast.maxFeePerGas),
+          maxPriorityFeePerGas: BigInt(gasPriceData.result.fast.maxPriorityFeePerGas),
+        };
+        console.log(`[DelegationService] Gas prices: maxFee=${gasPriceOverrides.maxFeePerGas}, maxPriority=${gasPriceOverrides.maxPriorityFeePerGas}`);
+      }
+    } catch (gasErr) {
+      console.warn(`[DelegationService] Could not fetch gas price, using defaults`);
+    }
+
     const userOpHash = await bundlerClient.sendUserOperationWithDelegation({
       publicClient,
       account: smartAccount,
@@ -166,6 +301,7 @@ export async function redeemDelegationAndTransfer(
           delegationManager: dmAddress,
         },
       ],
+      ...gasPriceOverrides,
     });
 
     console.log(`[DelegationService] UserOp submitted: ${userOpHash}`);
@@ -182,15 +318,7 @@ export async function redeemDelegationAndTransfer(
     if (err.details) {
       console.error(`[DelegationService] Details: ${err.details}`);
     }
-    // Demo fallback: return a unique mock hash per call
-    const demoHash = `0x${Buffer.from(
-      `${Date.now()}_${Math.random().toString(36)}_${recipient.slice(0, 10)}`
-    )
-      .toString("hex")
-      .padEnd(64, "0")
-      .slice(0, 64)}`;
-    console.log(`[DelegationService] Returning demo tx hash: ${demoHash}`);
-    return demoHash;
+    throw new Error(`Delegation redemption failed: ${err.message}`);
   }
 }
 

@@ -16,6 +16,30 @@ import { useAgentStore } from "@/store/agentStore";
 import { useWalletStore } from "@/store/walletStore";
 import { triggerPipeline, getPipelineStatus, getHistoryRun } from "@/lib/api";
 import { ONCHAIN_SERVICE_URL } from "@/lib/constants";
+import Link from "next/link";
+
+const SUGGESTED_PROMPTS = [
+  {
+    title: "DeFi Yield Analysis",
+    desc: "Research best yield farming strategies across protocols",
+    prompt: "Research the best DeFi yield farming strategies across Aave, Compound, and Uniswap. Analyze APY rates, risks, and recommend optimal allocation for $10k portfolio",
+  },
+  {
+    title: "Smart Contract Audit",
+    desc: "Build and audit a lending protocol",
+    prompt: "Build a DeFi lending protocol with Solidity smart contracts including lending pool, collateral manager, and liquidation engine. Have engineers write the code and reviewers audit it",
+  },
+  {
+    title: "Cross-chain Bridge",
+    desc: "Design a cross-chain bridge architecture",
+    prompt: "Design and implement a cross-chain bridge protocol between Ethereum and Arbitrum with relayer service, monitoring dashboard, and security analysis",
+  },
+  {
+    title: "DAO Governance",
+    desc: "Create a DAO governance framework",
+    prompt: "Create a comprehensive DAO governance framework with proposal system, voting mechanisms, treasury management, and delegation patterns. Include Solidity contracts and TypeScript SDK",
+  },
+];
 
 export default function DashboardPage() {
   const { status, result } = useAgentStore();
@@ -32,6 +56,9 @@ export default function DashboardPage() {
   const [selectedAgent, setSelectedAgent] = useState<number | null>(null);
   const [leftTab, setLeftTab] = useState<"pipeline" | "delegation">("pipeline");
   const [workspaceTab, setWorkspaceTab] = useState<"agents" | "analytics">("agents");
+
+  // Track if we've ever started a run (controls sidebar visibility)
+  const hasStarted = isRunning || (result?.agents?.length ?? 0) > 0;
 
   const fetchBudget = useCallback(async () => {
     setLoadingBudget(true);
@@ -80,7 +107,7 @@ export default function DashboardPage() {
     fetchAgentInfo();
   }, [fetchBudget, fetchAgentInfo]);
 
-  async function handleRunPipeline() {
+  async function handleRunPipeline(promptOverride?: string) {
     if (!permissionsContext) {
       setError("No active permission. Grant ERC-7715 access first.");
       return;
@@ -89,7 +116,8 @@ export default function DashboardPage() {
     setIsRevoked(false);
     setSelectedAgent(null);
     setWorkspaceTab("agents");
-    const task = taskInput.trim() || "Research the best DeFi yield farming strategies and write an analysis report";
+    const task = promptOverride || taskInput.trim() || "Research the best DeFi yield farming strategies and write an analysis report";
+    if (promptOverride) setTaskInput(promptOverride);
 
     setIsRunning(true);
     setError(null);
@@ -197,6 +225,176 @@ export default function DashboardPage() {
       .map((e) => ({ role: e.role, amount: e.paid_amount }));
   }, [result?.economy_log]);
 
+  function handleNewRun() {
+    setTaskInput("");
+    setSelectedAgent(null);
+    setError(null);
+    setCurrentStep(undefined);
+    setCompletedSteps([]);
+    setIsRunning(false);
+    setWorkspaceTab("agents");
+    setLeftTab("pipeline");
+    useAgentStore.getState().reset();
+  }
+
+  // ═══════════════════════════════════════════
+  // EMPTY STATE — Big centered chat input
+  // ═══════════════════════════════════════════
+  if (!hasStarted) {
+    return (
+      <div className="h-screen flex flex-col overflow-hidden bg-[#050505]">
+        {/* Minimal top bar */}
+        <div className="h-14 border-b border-white/[0.06] flex items-center justify-between px-6 flex-shrink-0 bg-[#0a0a0a]/50">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-[15px] font-semibold text-white/90 tracking-[-0.02em]">Vela</span>
+            <span className="text-[9px] text-white/20 font-mono">v1</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/analytics" className="text-[11px] text-white/25 hover:text-white/50 font-mono px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-all">
+              analytics
+            </Link>
+            <ConnectButton />
+          </div>
+        </div>
+
+        {/* Centered content */}
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-2xl">
+            {/* Logo + greeting */}
+            <motion.div
+              className="text-center mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.div
+                className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                animate={{ boxShadow: ["0 0 20px rgba(255,255,255,0.02)", "0 0 40px rgba(255,255,255,0.05)", "0 0 20px rgba(255,255,255,0.02)"] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                <span className="text-[22px] font-bold text-white/60">V</span>
+              </motion.div>
+              <h1 className="text-[24px] font-semibold text-white/80 tracking-[-0.03em] mb-2">
+                What should your agents build?
+              </h1>
+              <p className="text-[14px] text-white/25 max-w-md mx-auto leading-relaxed">
+                Describe a task. Vela&apos;s CEO agent will hire workers, execute, evaluate, and pay — all on-chain.
+              </p>
+            </motion.div>
+
+            {/* Permission manager (compact) */}
+            <motion.div
+              className="mb-5"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <PermissionManager onPermissionChange={fetchBudget} />
+            </motion.div>
+
+            {/* Big chat input */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="relative"
+            >
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:border-white/[0.12] transition-colors focus-within:border-white/[0.15] focus-within:bg-white/[0.03]">
+                <textarea
+                  value={taskInput}
+                  onChange={(e) => setTaskInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleRunPipeline();
+                    }
+                  }}
+                  placeholder="Describe what you want your AI economy to build..."
+                  rows={3}
+                  className="w-full bg-transparent text-[14px] text-white/70 placeholder:text-white/15 px-5 pt-4 pb-2 resize-none outline-none leading-relaxed"
+                />
+                <div className="flex items-center justify-between px-4 pb-3">
+                  <div className="flex items-center gap-3">
+                    {permissionsContext ? (
+                      <span className="text-[10px] font-mono text-emerald-400/40 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+                        ERC-7715 active
+                        {!loadingBudget && <span className="text-white/20 ml-1">${budgetUsdc}</span>}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-amber-400/40">grant permission first</span>
+                    )}
+                  </div>
+                  <button
+                    className="btn btn-primary px-5 py-2 text-[12px] rounded-xl"
+                    onClick={() => handleRunPipeline()}
+                    disabled={!permissionsContext || isRevoked}
+                  >
+                    Launch Economy
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Error */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-3 card-sm p-3 border-red-500/10 flex items-start gap-2"
+                >
+                  <span className="text-[10px] text-red-400/70 font-semibold mt-0.5">!</span>
+                  <p className="text-[11px] text-red-300/50 flex-1">{error}</p>
+                  <button onClick={() => setError(null)} className="text-[10px] text-white/20 hover:text-white/40 font-mono">x</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Suggested prompts */}
+            <motion.div
+              className="mt-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <p className="text-[10px] text-white/15 uppercase tracking-widest font-semibold mb-3 text-center">
+                Try these
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                {SUGGESTED_PROMPTS.map((s, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.55 + i * 0.08 }}
+                    onClick={() => {
+                      setTaskInput(s.prompt);
+                      if (permissionsContext) handleRunPipeline(s.prompt);
+                    }}
+                    className="text-left rounded-xl border border-white/[0.06] p-3.5 hover:border-white/[0.12] hover:bg-white/[0.02] transition-all group"
+                  >
+                    <p className="text-[12px] font-medium text-white/50 group-hover:text-white/70 transition-colors mb-1">
+                      {s.title}
+                    </p>
+                    <p className="text-[11px] text-white/15 leading-[1.5] group-hover:text-white/25 transition-colors">
+                      {s.desc}
+                    </p>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // ACTIVE STATE — Sidebar + workspace + terminal
+  // ═══════════════════════════════════════════
   return (
     <div className="h-screen flex overflow-hidden bg-[#050505]">
       {/* Sidebar */}
@@ -204,6 +402,7 @@ export default function DashboardPage() {
         isRunning={isRunning}
         currentRunId={useAgentStore.getState().currentRunId}
         onSelectHistory={handleSelectHistory}
+        onNewRun={handleNewRun}
       />
 
       {/* Main content area */}
@@ -267,7 +466,7 @@ export default function DashboardPage() {
                 />
                 <button
                   className="btn btn-primary w-full py-2.5 text-[12px]"
-                  onClick={handleRunPipeline}
+                  onClick={() => handleRunPipeline()}
                   disabled={isRunning || !permissionsContext || isRevoked}
                 >
                   {isRunning ? "Running..." : !permissionsContext ? "No Permission" : "Launch Economy"}

@@ -18,9 +18,10 @@ interface SidebarProps {
   isRunning: boolean;
   currentRunId?: string | null;
   onSelectHistory?: (runId: string) => void;
+  onNewRun?: () => void;
 }
 
-export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarProps) {
+export function Sidebar({ isRunning, currentRunId, onSelectHistory, onNewRun }: SidebarProps) {
   const [history, setHistory] = useState<HistoryRun[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -56,7 +57,10 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ x: -20, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={`h-full flex flex-col border-r border-white/[0.06] bg-[#0a0a0a] transition-all duration-300 ${
         collapsed ? "w-[52px]" : "w-[260px]"
       }`}
@@ -65,7 +69,14 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
       <div className="flex items-center justify-between px-3 h-14 border-b border-white/[0.06] flex-shrink-0">
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-[15px] font-semibold text-white/90 tracking-[-0.02em]">Vela</span>
+            <motion.span
+              className="text-[15px] font-semibold text-white/90 tracking-[-0.02em]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              Vela
+            </motion.span>
             <span className="text-[9px] text-white/20 font-mono">v1</span>
           </Link>
         )}
@@ -85,39 +96,56 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
 
       {/* New Run button */}
       {!collapsed && (
-        <div className="px-3 py-3 flex-shrink-0">
-          <Link href="/dashboard">
-            <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-white/50 hover:text-white/70 hover:bg-white/[0.04] transition-all border border-white/[0.06] hover:border-white/[0.1]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              New Run
-            </button>
-          </Link>
-        </div>
+        <motion.div
+          className="px-3 py-3 flex-shrink-0"
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <button
+            onClick={onNewRun}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-white/50 hover:text-white/70 hover:bg-white/[0.04] transition-all border border-white/[0.06] hover:border-white/[0.1] active:scale-[0.98]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New Run
+          </button>
+        </motion.div>
       )}
 
       {/* History list */}
       {!collapsed && (
         <div className="flex-1 overflow-y-auto px-2 pb-3">
-          <p className="text-[9px] text-white/20 uppercase tracking-widest font-semibold px-2 py-2">
+          <motion.p
+            className="text-[9px] text-white/20 uppercase tracking-widest font-semibold px-2 py-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             History
-          </p>
+          </motion.p>
 
           {history.length === 0 ? (
-            <p className="text-[11px] text-white/[0.12] px-2 py-4 font-mono text-center">
+            <motion.p
+              className="text-[11px] text-white/[0.12] px-2 py-4 font-mono text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               no runs yet
-            </p>
+            </motion.p>
           ) : (
             <div className="space-y-0.5">
               <AnimatePresence>
-                {history.map((run) => {
+                {history.map((run, i) => {
                   const isActive = run.run_id === currentRunId;
                   return (
                     <motion.button
                       key={run.run_id}
-                      initial={{ opacity: 0, x: -8 }}
+                      initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.04, type: "spring", stiffness: 300, damping: 30 }}
                       onClick={() => onSelectHistory?.(run.run_id)}
                       className={`w-full text-left px-3 py-2.5 rounded-xl transition-all group ${
                         isActive
@@ -152,7 +180,12 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
 
       {/* Bottom nav */}
       {!collapsed && (
-        <div className="border-t border-white/[0.06] px-3 py-3 flex-shrink-0 space-y-1">
+        <motion.div
+          className="border-t border-white/[0.06] px-3 py-3 flex-shrink-0 space-y-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
           <Link
             href="/analytics"
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-white/30 hover:text-white/50 hover:bg-white/[0.03] transition-all"
@@ -161,6 +194,17 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
               <path d="M18 20V10M12 20V4M6 20v-6" />
             </svg>
             Analytics
+          </Link>
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-white/30 hover:text-white/50 hover:bg-white/[0.03] transition-all"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M16 8l-4 4-4-4" />
+              <path d="M12 12v6" />
+            </svg>
+            Economy
           </Link>
           <Link
             href="/permissions"
@@ -181,8 +225,8 @@ export function Sidebar({ isRunning, currentRunId, onSelectHistory }: SidebarPro
             </svg>
             Home
           </Link>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }

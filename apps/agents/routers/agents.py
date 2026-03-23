@@ -324,7 +324,65 @@ async def analyze_agent(req: AnalyzeAgentRequest):
     """Analyze an agent's output and return structured visual data."""
     import httpx
 
-    prompt = f"""Analyze this AI agent's work output and return a JSON object for visual dashboard rendering.
+    # Role-specific analysis prompts
+    role_base = req.role.split("_")[0].lower()
+
+    if role_base in ("engineer", "coder"):
+        prompt = f"""Analyze this AI engineer/coder agent's work output and extract code snippets with analysis.
+Return a JSON object for a visual code review dashboard.
+
+Agent Role: {req.role}
+Task: {req.task}
+Quality Score: {req.quality_score}/10
+Budget: ${req.budget} | Paid: ${req.paid_amount}
+Status: {req.status}
+
+Output:
+{req.output[:4000]}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "summary": "2-3 sentence summary of what this engineer built",
+  "code_snippets": [
+    {{
+      "filename": "src/example.ts",
+      "language": "typescript",
+      "code": "// actual code extracted from output (keep it real, 10-30 lines max per snippet)",
+      "explanation": "What this code does and why",
+      "quality": "good|warning|critical"
+    }}
+  ],
+  "architecture": {{
+    "components": ["Component 1", "Component 2", "Component 3"],
+    "patterns": ["Pattern used 1", "Pattern used 2"],
+    "dependencies": ["Dep 1", "Dep 2"]
+  }},
+  "code_metrics": {{
+    "files_touched": 0,
+    "total_lines": 0,
+    "complexity": "low|medium|high",
+    "test_coverage": "none|partial|full"
+  }},
+  "key_findings": ["finding 1", "finding 2"],
+  "metrics": [
+    {{"label": "metric name", "value": "metric value", "color": "emerald|blue|purple|amber|rose"}}
+  ],
+  "strengths": ["strength 1", "strength 2"],
+  "weaknesses": ["weakness 1"],
+  "word_count": 0,
+  "sections_covered": ["section 1", "section 2"],
+  "depth_score": 0,
+  "actionability_score": 0,
+  "research_quality": 0,
+  "writing_quality": 0
+}}
+
+Extract REAL code from the output. If no code exists, generate representative code based on what the agent described.
+IMPORTANT: Keep each code snippet under 20 lines. Escape all special characters in code strings (newlines as \\n, quotes as \\", backslashes as \\\\).
+depth_score, actionability_score, research_quality, writing_quality are 1-10 integers.
+Return ONLY valid JSON, no markdown, no explanation."""
+    else:
+        prompt = f"""Analyze this AI agent's work output and return a JSON object for visual dashboard rendering.
 
 Agent Role: {req.role}
 Task: {req.task}
@@ -357,7 +415,7 @@ depth_score, actionability_score, research_quality, writing_quality are 1-10 int
 Return ONLY the JSON, no markdown, no explanation."""
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=45) as client:
             resp = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
@@ -367,7 +425,7 @@ Return ONLY the JSON, no markdown, no explanation."""
                 json={
                     "model": "anthropic/claude-sonnet-4",
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 1000,
+                    "max_tokens": 2500,
                 },
             )
             data = resp.json()
@@ -380,7 +438,26 @@ Return ONLY the JSON, no markdown, no explanation."""
                 content = content.rsplit("```", 1)[0]
             content = content.strip()
 
-            analysis = json.loads(content)
+            # Try to repair truncated JSON
+            try:
+                analysis = json.loads(content)
+            except json.JSONDecodeError:
+                # Try closing braces/brackets
+                repaired = content
+                open_braces = repaired.count("{") - repaired.count("}")
+                open_brackets = repaired.count("[") - repaired.count("]")
+                # Close any open strings
+                if repaired.count('"') % 2 != 0:
+                    repaired += '"'
+                for _ in range(open_brackets):
+                    repaired += "]"
+                for _ in range(open_braces):
+                    repaired += "}"
+                try:
+                    analysis = json.loads(repaired)
+                except json.JSONDecodeError as e2:
+                    return {"ok": False, "error": f"JSON parse failed: {str(e2)[:100]}"}
+
             return {"ok": True, "analysis": analysis}
     except Exception as e:
         return {"ok": False, "error": str(e)}

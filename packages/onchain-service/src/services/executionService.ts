@@ -46,13 +46,17 @@ export async function executePayments(
         payment.delegationManager
       );
 
-      // Log the payout on-chain in ContributorRegistry
-      await logPayout(
-        payment.contributorAddress as `0x${string}`,
-        payment.amountUsdc,
-        payment.aiScore,
-        txHash as `0x${string}`
-      );
+      // Try to log the payout on-chain in ContributorRegistry (non-blocking)
+      try {
+        await logPayout(
+          payment.contributorAddress as `0x${string}`,
+          payment.amountUsdc,
+          payment.aiScore,
+          txHash as `0x${string}`
+        );
+      } catch (logErr: any) {
+        console.warn(`[ExecutionService] logPayout failed for ${payment.contributorAddress}: ${logErr.message} (non-blocking)`);
+      }
 
       results.push({
         contributorAddress: payment.contributorAddress,

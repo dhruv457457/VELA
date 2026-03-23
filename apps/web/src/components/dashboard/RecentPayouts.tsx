@@ -1,7 +1,5 @@
 "use client";
 
-import { GlassCard } from "../ui/GlassCard";
-
 interface Payout {
   contributor: string;
   amount: number;
@@ -26,36 +24,34 @@ export function RecentPayouts({ payouts }: RecentPayoutsProps) {
   }
 
   return (
-    <GlassCard>
-      <h3 className="text-lg font-semibold mb-4">Recent Payouts</h3>
+    <div className="card p-6">
+      <p className="label-xs mb-4">Recent Payouts</p>
       <div className="space-y-3">
         {payouts.map((p, i) => (
           <div
             key={i}
-            className="glass-card-sm p-4 flex items-start gap-4 hover:bg-white/5 transition-colors"
+            className="card-sm p-4 flex items-start gap-4 hover:bg-white/[0.02] transition-colors"
           >
-            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-teal-500/30 flex items-center justify-center text-sm font-bold text-purple-300">
+            <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center text-[12px] font-semibold text-white/50">
               ${Math.round(p.amount)}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white/90">
+                <span className="text-[12px] font-medium text-white/60">
                   @{p.contributor}
                 </span>
-                <span className="text-xs text-white/30">{timeAgo(p.timestamp)}</span>
+                <span className="text-[10px] text-white/15 font-mono">{timeAgo(p.timestamp)}</span>
               </div>
-              <p className="text-xs text-white/50 mt-0.5 truncate">
-                {p.reason}
-              </p>
+              <p className="text-[11px] text-white/25 mt-0.5 truncate">{p.reason}</p>
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="text-xs text-teal-300/80">
+                <span className="text-[10px] text-white/30 font-mono">
                   Score: {p.score}/10
                 </span>
                 <a
                   href={`https://sepolia.etherscan.io/tx/${p.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-mono text-purple-400 hover:text-purple-300"
+                  className="text-[10px] font-mono text-white/20 hover:text-white/40 transition-colors"
                 >
                   {p.txHash}
                 </a>
@@ -64,6 +60,6 @@ export function RecentPayouts({ payouts }: RecentPayoutsProps) {
           </div>
         ))}
       </div>
-    </GlassCard>
+    </div>
   );
 }

@@ -48,7 +48,10 @@ class OnchainClient:
     async def execute_payments(
         self, payments: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        async with httpx.AsyncClient(timeout=60) as client:
+        # Each payment involves sub-delegation + UserOp submission + confirmation
+        # which can take 15-30s each. Allow 120s per payment.
+        timeout = max(180, len(payments) * 120)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
                 f"{self.base_url}/api/permissions/execute-payments",
                 json={"payments": payments},
